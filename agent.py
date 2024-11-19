@@ -265,5 +265,4 @@ def get_graph(repo_path):
     )
 
     graph = workflow.compile()
-    print_graph(graph)
     return graph, toolset
