@@ -14,17 +14,26 @@ def callback_function(event):
     try: 
         print(f"Received trigger LINEAR_ISSUE_CREATED_TRIGGER")
         payload = event.payload
+        action = payload.get("action")
         data = payload.get("data", {})
         project = data.get("project", {})
         project_name = project.get("name")
+        number = data.get("number")
         
         if not project_name or project_name != "Python SDK":
-            print(f"Skipping issue {data.get('id')} as it is not in the Python SDK project")
+            print(f"Skipping issue {number} as it is not in the Python SDK project")
+            return
+
+        if action != "create":
+            print(f"Skipping issue {number} as it is not a create event")
             return
 
         id = data.get("id")
         title = data.get("title")
         description = data.get("description")
+        
+
+        print(f"Running agent for issue {number}")
     
         run_agent(id, title, description)
 
