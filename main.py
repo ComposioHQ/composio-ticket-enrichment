@@ -2,18 +2,19 @@ from agent import get_graph
 from langchain_core.messages import HumanMessage
 import traceback
 from composio import Action, ComposioToolSet
-import logging
+from composio.utils.logging import get_logger
 
 REPO_OWNER = "ComposioHQ"
 REPO_NAME = "composio"
 
 listener = ComposioToolSet().create_trigger_listener()
+logger = get_logger(__name__)
 
 # Triggers when a new event takes place
 @listener.callback(filters={"trigger_name": "LINEAR_ISSUE_CREATED_TRIGGER"})
 def callback_function(event):
     try: 
-        logging.info(f"Received trigger LINEAR_ISSUE_CREATED_TRIGGER")
+        logger.info(f"Received trigger LINEAR_ISSUE_CREATED_TRIGGER")
         payload = event.payload
         action = payload.get("action")
         data = payload.get("data", {})
@@ -22,11 +23,11 @@ def callback_function(event):
         number = data.get("number")
         
         if not project_name or project_name != "Python SDK":
-            logging.info(f"Skipping issue {number} as it is not in the Python SDK project")
+            logger.info(f"Skipping issue {number} as it is not in the Python SDK project")
             return
 
         if action != "create":
-            logging.info(f"Skipping issue {number} as it is not a create event")
+            logger.info(f"Skipping issue {number} as it is not a create event")
             return
 
         id = data.get("id")
@@ -34,7 +35,7 @@ def callback_function(event):
         description = data.get("description")
         
 
-        logging.info(f"Running ticket enrichment agent for issue {number}")
+        logger.info(f"Running ticket enrichment agent for issue {number}")
     
         run_agent(id, title, description)
 
