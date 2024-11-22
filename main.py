@@ -4,9 +4,6 @@ import traceback
 from composio import Action, ComposioToolSet
 from composio.utils.logging import get_logger
 
-REPO_OWNER = "ComposioHQ"
-REPO_NAME = "composio"
-
 listener = ComposioToolSet().create_trigger_listener()
 logger = get_logger(__name__)
 
@@ -14,7 +11,7 @@ logger = get_logger(__name__)
 @listener.callback(filters={"trigger_name": "LINEAR_ISSUE_CREATED_TRIGGER"})
 def callback_function(event):
     try: 
-        logger.info(f"Received trigger LINEAR_ISSUE_CREATED_TRIGGER")
+        logger.info("Received Linear issue created trigger")
         payload = event.payload
         action = payload.get("action")
         data = payload.get("data", {})
@@ -22,29 +19,37 @@ def callback_function(event):
         project_name = project.get("name")
         number = data.get("number")
         
-        if not project_name or project_name != "Python SDK":
-            logger.info(f"Skipping issue {number} as it is not in the Python SDK project")
+        if not project_name:
+            logger.warning(f"Issue #{number} skipped: Not assigned to any project")
+            return
+        
+        if project_name == "Python SDK":
+            repo_owner, repo_name = "ComposioHQ", "composio"
+        elif project_name == "Tech Infra":
+            repo_owner, repo_name = "ComposioHQ", "hermes"
+        else:
+            logger.warning(f"Issue #{number} skipped: Project '{project_name}' not supported")
             return
 
         if action != "create":
-            logger.info(f"Skipping issue {number} as it is not a create event")
+            logger.debug(f"Issue #{number} skipped: Action '{action}' is not 'create'")
             return
 
         id = data.get("id")
         title = data.get("title")
         description = data.get("description")
         
-
-        logger.info(f"Running ticket enrichment agent for issue {number}")
+        logger.info(f"Processing issue #{number} - {title} ({repo_owner}/{repo_name})")
     
-        run_agent(id, title, description)
+        run_agent(id, title, description, repo_owner, repo_name)
 
     except Exception as e:
-        traceback.print_exc()
+        logger.error(f"Error processing issue #{number}: {str(e)}")
+        logger.debug(f"Full traceback:\n{traceback.format_exc()}")
 
 
-def run_agent(id, title, description) -> None:
-    repo_path = f"/home/user/{REPO_NAME}"
+def run_agent(id, title, description, repo_owner, repo_name) -> None:
+    repo_path = f"/home/user/{repo_name}"
 
     graph, composio_toolset = get_graph(repo_path)
 
@@ -55,7 +60,7 @@ def run_agent(id, title, description) -> None:
 
     composio_toolset.execute_action(
         action=Action.FILETOOL_GIT_CLONE,
-        params={"repo_name": f"{REPO_OWNER}/{REPO_NAME}"},
+        params={"repo_name": f"{repo_owner}/{repo_name}"},
     )
     composio_toolset.execute_action(
         action=Action.FILETOOL_CHANGE_WORKING_DIRECTORY,
@@ -70,9 +75,13 @@ def run_agent(id, title, description) -> None:
         {
             "messages": [
                 HumanMessage(
-                    content=f"You have {REPO_OWNER}/{REPO_NAME} cloned at your current working directory. \
-You have a linear ticket with id `{id}`, title `{title}` and description `{description}`. Your task is to find what files \
-would be a good starting point to solve this issue. Also enrich the ticket with a comment that is helpful."
+                    content=f"You have {repo_owner}/{repo_name} cloned at your current working directory. \
+You have a linear ticket with: \
+id: `{id}`, \
+title: `{title}`, \
+description: `{description}`. \
+Your task is to find what files would be a good starting point to solve this issue. \
+Also enrich the ticket with a comment that is helpful."
                 )
             ]
         },
