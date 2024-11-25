@@ -266,3 +266,7 @@ def get_graph(repo_path):
 
     graph = workflow.compile()
     return graph, toolset
+
+if __name__ == '__main__':
+    graph, _ = get_graph("/home/ubuntu/composio/")
+    print_graph(graph)
