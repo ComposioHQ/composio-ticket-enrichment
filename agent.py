@@ -37,13 +37,6 @@ def pop_thought_from_request(request: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
     request.pop("thought", None)
     return request
 
-def _linear_create_linear_comment_pre(request: dict) -> dict:
-    return {
-        "issue_id": request["issue_id"],
-        "body": request["body"].replace('\n', '\\n').replace('"', '\\"'),
-    }
-
-
 def print_graph(graph: CompiledStateGraph):
     # Import necessary modules
     import os
@@ -75,7 +68,6 @@ def get_graph(repo_path):
         },
         processors={
             "pre": {
-                Action.LINEAR_CREATE_LINEAR_COMMENT: _linear_create_linear_comment_pre,
                 App.FILETOOL: pop_thought_from_request,
                 App.CODE_ANALYSIS_TOOL: pop_thought_from_request,
             },
