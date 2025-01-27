@@ -71,7 +71,7 @@ def run_agent(id, title, description, repo_owner, repo_name) -> None:
         params={},
     )
 
-    run_result = graph.invoke(
+    graph.invoke(
         {
             "messages": [
                 HumanMessage(
